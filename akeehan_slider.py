@@ -8,6 +8,7 @@ Alexander Keehan, University of Mary Washington, fall 2023
 from copy import deepcopy
 from puzzle import Puzzle
 import sys
+import heapq
 
 
 def solve(p):
@@ -48,7 +49,6 @@ def solve(p):
                 node = puzzle[x][y]
                 if node != -1:
                     total_dist += calculate_distance(node, puzzle, solved)
-                    print(total_dist)
         
         return total_dist
 
@@ -59,7 +59,7 @@ def solve(p):
             if frontierEstimates[frontier[x]] > heuristic:
                 frontier.insert(x, state)
                 frontierEstimates[state] = heuristic
-                frontierPuzzles[state] = deepcopy(frontierPuzzles[frontier[x - 1]])
+                frontierPuzzles[state] = deepcopy(frontierPuzzles[frontier[x]])
                 return
         frontier.append(state)
         frontierEstimates[state] = heuristic
@@ -67,34 +67,42 @@ def solve(p):
 
 
     # Do greedy Search
-    def greedy(p):
-        frontier = [()]
-        frontierEstimates = {() : get_heuristic(p)}
+    def solve(p):
+        frontier = [(get_heuristic(p), ())]
+        frontierEstimates = {() : 0}
         frontierPuzzles = {() : p}
         
         while frontier:
-            curr_state = frontier.pop(0)
-            #curr_heuristic = frontierEstimates[curr_state]
+            print("Frontier", frontier)
+            _, curr_state = heapq.heappop(frontier)
+            
             curr_puzzle = frontierPuzzles[curr_state]
 
-            if get_heuristic(curr_puzzle) == 0:
+            test = get_heuristic(curr_puzzle)
+            print("Heuristic", test)
+            if curr_puzzle.is_solved():
+                return curr_state
+            #if get_heuristic(curr_puzzle) == 0:
                 return curr_state
             
-            legal_moves = curr_puzzle.legal_moves()
-            for move in legal_moves:
+            moves = curr_puzzle.legal_moves()
+            length_moves = len(moves)
+            for move in moves:
                 puzzle = deepcopy(curr_puzzle)
                 puzzle.move(move)
+                
                 new_state = curr_state + (move,)
-                #heuristic = curr_heuristic + 1
+                
                 heuristic = get_heuristic(puzzle)
 
-                if new_state not in frontierEstimates or heuristic < frontierEstimates[new_state]:
-                    insert_frontier(frontier, frontierEstimates, frontierPuzzles, new_state, heuristic)
+                frontierEstimates[new_state] = heuristic
+                frontierPuzzles[new_state] = puzzle
+                heapq.heappush(frontier, (heuristic, new_state))
 
-    
-    ans = greedy(p)
-    print("NICE")
-    print("ans", ans)
+    ans = []
+    ans = solve(p)
+
+    return ans
     #heuristic = get_heuristic(p)
     #print("Result", heuristic)
     # Here's a (bogus) example return value:
