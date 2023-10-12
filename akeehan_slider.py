@@ -44,6 +44,7 @@ def solve(p):
         puzzle = puzzle.grid
         solved = Puzzle(len(puzzle))
         total_dist = 0
+        # Check distance between everything to get total heuristic
         for x in range(len(puzzle)):
             for y in range(len(puzzle[x])):
                 node = puzzle[x][y]
@@ -52,59 +53,67 @@ def solve(p):
         
         return total_dist
 
-    def insert_frontier(frontier, frontierEstimates, frontierPuzzles, state, heuristic):
-        for x in range(len(frontier)):
-            #frontier_heuristic = get_heuristic(x)
-            #if heuristic > frontier_heuristic:
-            if frontierEstimates[frontier[x]] > heuristic:
-                frontier.insert(x, state)
-                frontierEstimates[state] = heuristic
-                frontierPuzzles[state] = deepcopy(frontierPuzzles[frontier[x]])
-                return
-        frontier.append(state)
-        frontierEstimates[state] = heuristic
-        frontierPuzzles[state] = deepcopy(frontierPuzzles[frontier[-1]])
-
-
-    # Do greedy Search
-    def solve(p):
+    # Do A* Search
+    def a_star(p):
+        # Frontier stores states to be expanded
         frontier = [(get_heuristic(p), ())]
-        frontierEstimates = {() : 0}
-        frontierPuzzles = {() : p}
-        
-        while frontier:
-            print("Frontier", frontier)
-            _, curr_state = heapq.heappop(frontier)
-            
-            curr_puzzle = frontierPuzzles[curr_state]
+        # visited stores sequences we have seen before
+        visited = set()
+        # frontierPuzzles stores puzzles and sequences
+        frontierPuzzles = {() : deepcopy(p)}
 
-            test = get_heuristic(curr_puzzle)
-            print("Heuristic", test)
-            if curr_puzzle.is_solved():
-                return curr_state
-            #if get_heuristic(curr_puzzle) == 0:
+        # Loop until solution found
+        while frontier:
+            # Use _ to chew up the heuristic and set curr_state to the sequence in the frontier
+            _, curr_state = heapq.heappop(frontier)            
+             
+            # curr_puzzle stores the puzzle we are on
+            curr_puzzle = frontierPuzzles[curr_state]
+            
+            # Check if we are in goal state
+            if get_heuristic(curr_puzzle) == 0:
                 return curr_state
             
+            # Add sequence to visited
+            visited.add(curr_state)
+                        
+            # moves stores all possible moves from current puzzle
             moves = curr_puzzle.legal_moves()
-            length_moves = len(moves)
+            
+            # Loop through all the moves
             for move in moves:
+                # flag checks if a puzzle has been visited before
+                flag = 0
+                # deepcopy the puzzle
                 puzzle = deepcopy(curr_puzzle)
+                # Do the move on the copied puzzle
                 puzzle.move(move)
                 
+                # Loop through frontierPuzzles to check if the new puzzle is already in it
+                for p in frontierPuzzles:
+                    temp_puzzle = frontierPuzzles[p]
+                    if puzzle.__eq__(temp_puzzle):
+                        flag = 1    
+                
+                # Add the sequence to new_state
                 new_state = curr_state + (move,)
                 
-                heuristic = get_heuristic(puzzle)
+                # Get the heuristic for new sequence
+                heuristic = len(new_state) + get_heuristic(puzzle)
+            
+                # Check if the new sequence is in visited or if the puzzle has been visited before
+                if new_state not in visited and flag == 0:
+                    # If not, then add it to the frontier
+                    heapq.heappush(frontier, (heuristic, new_state))
+                    # Also add it to frontierPuzzles
+                    frontierPuzzles[new_state] = puzzle
 
-                frontierEstimates[new_state] = heuristic
-                frontierPuzzles[new_state] = puzzle
-                heapq.heappush(frontier, (heuristic, new_state))
 
+    # ans stores the final sequence to solve the puzzle
     ans = []
-    ans = solve(p)
-
+    # Call a_star
+    ans = a_star(p)
     return ans
-    #heuristic = get_heuristic(p)
-    #print("Result", heuristic)
     # Here's a (bogus) example return value:
     #return ["D","U","L","L"]
 
